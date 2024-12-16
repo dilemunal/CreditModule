@@ -1,5 +1,8 @@
 package com.example.creditmodule.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum ErrorMessage {
     CUSTOMER_NOT_FOUND(1001, "Customer not found with given id."),
     INSUFFICIENT_CREDIT_LIMIT(1002, "Customer does not have enough credit limit for the loan."),
@@ -12,14 +15,6 @@ public enum ErrorMessage {
     ErrorMessage(Integer errorCode, String message) {
         this.errorCode = errorCode;
         this.message = message;
-    }
-
-    public Integer getErrorCode() {
-        return errorCode;
-    }
-
-    public String getMessage() {
-        return message;
     }
 
 }
