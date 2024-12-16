@@ -1,7 +1,6 @@
 package com.example.creditmodule.dto.response;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
