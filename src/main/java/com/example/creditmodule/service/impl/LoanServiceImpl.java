@@ -2,6 +2,7 @@ package com.example.creditmodule.service.impl;
 
 import com.example.creditmodule.dto.request.CreateLoanRequestDTO;
 import com.example.creditmodule.dto.request.ListLoansRequestDTO;
+import com.example.creditmodule.dto.response.LoanInstallmentResponseDTO;
 import com.example.creditmodule.dto.response.LoanResponseDTO;
 import com.example.creditmodule.entity.Customer;
 import com.example.creditmodule.entity.Loan;
@@ -129,6 +130,23 @@ public class LoanServiceImpl implements LoanService {
                         loan.getIsPaid()
                 ))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<LoanInstallmentResponseDTO> listInstallments(Long loanId) {
+        List<LoanInstallment> installments = loanInstallmentRepository.findByLoanId(loanId);
+        if(ObjectUtils.isEmpty(installments)){
+            throw new CreditModuleException(ErrorMessage.INSTALLMENT_NOT_FOUND);
+        }
+        return installments.stream().map(
+                loanInstallment -> new LoanInstallmentResponseDTO(
+                        loanInstallment.getId(),
+                        loanInstallment.getAmount(),
+                        loanInstallment.getPaidAmount(),
+                        loanInstallment.getDueDate(),
+                        loanInstallment.getPaymentDate(),
+                        loanInstallment.getIsPaid())
+        ).collect(Collectors.toList());
     }
 }
 

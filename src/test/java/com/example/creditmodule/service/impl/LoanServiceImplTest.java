@@ -2,9 +2,11 @@ package com.example.creditmodule.service.impl;
 
 import com.example.creditmodule.dto.request.CreateLoanRequestDTO;
 import com.example.creditmodule.dto.request.ListLoansRequestDTO;
+import com.example.creditmodule.dto.response.LoanInstallmentResponseDTO;
 import com.example.creditmodule.dto.response.LoanResponseDTO;
 import com.example.creditmodule.entity.Customer;
 import com.example.creditmodule.entity.Loan;
+import com.example.creditmodule.entity.LoanInstallment;
 import com.example.creditmodule.enums.ErrorMessage;
 import com.example.creditmodule.exception.CreditModuleException;
 import com.example.creditmodule.repository.CustomerRepository;
@@ -19,6 +21,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -195,5 +198,50 @@ class LoanServiceImplTest {
         Assertions.assertEquals(loans.get(0).getId(), response.get(0).getId());
     }
 
+    @Test
+    void listInstallment_ThrowExceptionIfNotFound() {
+        Long loanId = 1000L;
+        Mockito.when(loanInstallmentRepository.findByLoanId(loanId)).thenReturn(Collections.emptyList());
+
+        CreditModuleException exception = Assertions.assertThrows(
+                CreditModuleException.class,
+                () -> loanService.listInstallments(loanId)
+        );
+
+        Assertions.assertEquals(ErrorMessage.INSTALLMENT_NOT_FOUND.getMessage(), exception.getErrorMessage());
+    }
+
+    @Test
+    void listInstallments_ReturnsInstallmentsSuccessfully() {
+        Long loanId = 100L;
+        Loan loan = new Loan();
+        loan.setId(loanId);
+        List<LoanInstallment> installments = Arrays.asList(
+                new LoanInstallment(1L, 100.0, 0.0, LocalDate.of(2024,12,17), LocalDate.of(2024,12,15), true,loan),
+                new LoanInstallment(2L, 100.0, 100.0, LocalDate.of(2025,1,17), null, false,loan)
+        );
+
+        Mockito.when(loanInstallmentRepository.findByLoanId(loanId)).thenReturn(installments);
+
+        List<LoanInstallmentResponseDTO> response = loanService.listInstallments(loanId);
+
+        Assertions.assertEquals(2, response.size());
+
+        LoanInstallmentResponseDTO firstInstallment = response.get(0);
+        Assertions.assertEquals(1L, firstInstallment.getId());
+        Assertions.assertEquals(100.0, firstInstallment.getAmount());
+        Assertions.assertEquals(0.0, firstInstallment.getPaidAmount());
+        Assertions.assertEquals(LocalDate.of(2024,12,17), firstInstallment.getDueDate());
+        Assertions.assertEquals(LocalDate.of(2024,12,15), firstInstallment.getPaymentDate());
+        Assertions.assertTrue(firstInstallment.getIsPaid());
+
+        LoanInstallmentResponseDTO secondInstallment = response.get(1);
+        Assertions.assertEquals(2L, secondInstallment.getId());
+        Assertions.assertEquals(100.0, secondInstallment.getAmount());
+        Assertions.assertEquals(100.0, secondInstallment.getPaidAmount());
+        Assertions.assertEquals(LocalDate.of(2025,1,17), secondInstallment.getDueDate());
+        Assertions.assertNull(secondInstallment.getPaymentDate());
+        Assertions.assertFalse(secondInstallment.getIsPaid());
+    }
 }
 

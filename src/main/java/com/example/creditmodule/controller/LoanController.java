@@ -2,6 +2,7 @@ package com.example.creditmodule.controller;
 
 import com.example.creditmodule.dto.request.CreateLoanRequestDTO;
 import com.example.creditmodule.dto.request.ListLoansRequestDTO;
+import com.example.creditmodule.dto.response.LoanInstallmentResponseDTO;
 import com.example.creditmodule.dto.response.LoanResponseDTO;
 import com.example.creditmodule.entity.Loan;
 import com.example.creditmodule.service.LoanService;
@@ -37,5 +38,10 @@ public class LoanController {
         return ResponseEntity.ok(loans);
     }
 
+    @GetMapping("listInstallments")
+    public ResponseEntity<List<LoanInstallmentResponseDTO>> listInstallments(@RequestParam Long loanId) {
+        List<LoanInstallmentResponseDTO> loanInstallments = loanService.listInstallments(loanId);
+        return ResponseEntity.ok(loanInstallments);
+    }
 
 }
