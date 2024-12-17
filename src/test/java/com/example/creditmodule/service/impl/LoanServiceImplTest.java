@@ -2,7 +2,9 @@ package com.example.creditmodule.service.impl;
 
 import com.example.creditmodule.dto.request.CreateLoanRequestDTO;
 import com.example.creditmodule.dto.request.ListLoansRequestDTO;
+import com.example.creditmodule.dto.request.PayLoanRequest;
 import com.example.creditmodule.dto.response.LoanInstallmentResponseDTO;
+import com.example.creditmodule.dto.response.LoanPaymentResponseDTO;
 import com.example.creditmodule.dto.response.LoanResponseDTO;
 import com.example.creditmodule.entity.Customer;
 import com.example.creditmodule.entity.Loan;
@@ -243,5 +245,153 @@ class LoanServiceImplTest {
         Assertions.assertNull(secondInstallment.getPaymentDate());
         Assertions.assertFalse(secondInstallment.getIsPaid());
     }
-}
+
+    @Test
+    void payLoan_loanNotFound() {
+            Long loanId = 1L;
+        double paymentAmount = 20.0;
+        PayLoanRequest request = new PayLoanRequest(loanId, paymentAmount,LocalDate.now());
+
+        Mockito.when(loanRepository.findById(loanId)).thenReturn(Optional.empty());
+
+        CreditModuleException exception = Assertions.assertThrows(
+                CreditModuleException.class,
+                () -> loanService.payLoan(request)
+        );
+
+        Assertions.assertEquals(ErrorMessage.LOAN_NOT_FOUND.getMessage(), exception.getErrorMessage());
+    }
+
+    @Test
+    void payLoan_noPayableInstallments() {
+        Long loanId = 1L;
+        double paymentAmount = 20.0;
+        PayLoanRequest request = new PayLoanRequest(loanId, paymentAmount,LocalDate.now());
+
+        Loan loan = new Loan();
+        loan.setId(loanId);
+        Mockito.when(loanRepository.findById(loanId)).thenReturn(Optional.of(loan));
+
+        List<LoanInstallment> payableInstallments = List.of();
+        Mockito.when(loanInstallmentRepository.findByLoanId(loanId)).thenReturn(payableInstallments);
+
+        CreditModuleException exception = Assertions.assertThrows(
+                CreditModuleException.class,
+                () -> loanService.payLoan(request)
+        );
+
+        Assertions.assertEquals(ErrorMessage.NO_PAYABLE_INSTALLMENTS.getMessage(), exception.getErrorMessage());
+    }
+    @Test
+    void payLoan_successPayPayableInstallments() {
+        Long loanId = 1L;
+        double paymentAmount = 1500.0;
+        PayLoanRequest request = new PayLoanRequest(loanId, paymentAmount,LocalDate.now());
+
+        Customer customer = new Customer();
+        customer.setUsedCreditLimit(1000.0);
+
+        Loan loan = new Loan();
+        loan.setId(loanId);
+        loan.setLoanAmount(3000.0);
+        loan.setNumberOfInstallment(3);
+        loan.setIsPaid(false);
+        loan.setCustomer(customer);
+
+        LoanInstallment installment1 = new LoanInstallment();
+        installment1.setId(1L);
+        installment1.setAmount(1000.0);
+        installment1.setIsPaid(true);
+        installment1.setPaidAmount(1000.0);
+        installment1.setDueDate(LocalDate.of(2024, 1, 1));
+
+        LoanInstallment installment2 = new LoanInstallment();
+        installment2.setId(2L);
+        installment2.setAmount(1000.0);
+        installment2.setIsPaid(false);
+        installment2.setPaidAmount(0.0);
+        installment2.setDueDate(LocalDate.of(2024, 2, 1));
+
+        LoanInstallment installment3 = new LoanInstallment();
+        installment3.setId(3L);
+        installment3.setAmount(1000.0);
+        installment3.setIsPaid(false);
+        installment3.setPaidAmount(0.0);
+        installment3.setDueDate(LocalDate.of(2024, 3, 1));
+
+        Mockito.when(loanRepository.findById(loanId)).thenReturn(Optional.of(loan));
+        Mockito.when(loanInstallmentRepository.findByLoanId(loanId))
+                .thenReturn(List.of(installment1, installment2, installment3));
+
+        LoanPaymentResponseDTO response = loanService.payLoan(request);
+
+        Assertions.assertEquals(1, response.getPaidInstallments());  // 2. taksit ödenmiş
+        Assertions.assertEquals(500.0, response.getRemainingAmount());  // Geriye 500 TL
+        Assertions.assertEquals(1, response.getUnpaidInstallments());  // ödenmeyen 1 taksit
+        Assertions.assertEquals(true, installment2.getIsPaid());  // 2. taksit ödenmdi
+        Assertions.assertEquals(false, installment3.getIsPaid());  // 3. taksit ödenmemiş
+        Assertions.assertNotNull(installment2.getPaymentDate());  // Ödeme tarihi eklenmiş
+        Assertions.assertNull(installment3.getPaymentDate());  // 3. taksit ödenmediği için ödeme tarihi null olmalı
+
+
+        Mockito.verify(loanInstallmentRepository).save(installment2);
+        Mockito.verify(loanInstallmentRepository, Mockito.never()).save(installment3);
+    }
+
+    @Test
+    void payLoan_allInstallmenstPaid() {
+        Long loanId = 1L;
+        double paymentAmount = 1000.0;
+        PayLoanRequest request = new PayLoanRequest(loanId, paymentAmount,LocalDate.now());
+
+        Customer customer = new Customer();
+        customer.setUsedCreditLimit(1000.0);
+
+        Loan loan = new Loan();
+        loan.setId(loanId);
+        loan.setLoanAmount(1000.0);
+        loan.setNumberOfInstallment(2);
+        loan.setIsPaid(false);
+        loan.setCustomer(customer);
+
+        LoanInstallment installment1 = new LoanInstallment();
+        installment1.setId(2L);
+        installment1.setAmount(500.0);
+        installment1.setIsPaid(false);
+        installment1.setPaidAmount(0.0);
+        installment1.setDueDate(LocalDate.of(2024, 2, 1));
+
+        LoanInstallment installment2 = new LoanInstallment();
+        installment2.setId(3L);
+        installment2.setAmount(500.0);
+        installment2.setIsPaid(false);
+        installment2.setPaidAmount(0.0);
+        installment2.setDueDate(LocalDate.of(2024, 3, 1));
+
+        Mockito.when(loanRepository.findById(loanId)).thenReturn(Optional.of(loan));
+        Mockito.when(loanInstallmentRepository.findByLoanId(loanId))
+                .thenReturn(List.of(installment1, installment2));
+
+        LoanPaymentResponseDTO response = loanService.payLoan(request);
+
+        Assertions.assertEquals(2, response.getPaidInstallments());
+        Assertions.assertEquals(0.0, response.getRemainingAmount());
+        Assertions.assertEquals(0, response.getUnpaidInstallments());
+        Assertions.assertEquals(true, installment1.getIsPaid());
+        Assertions.assertEquals(true, installment2.getIsPaid());
+        Assertions.assertNotNull(installment2.getPaymentDate());
+        Assertions.assertNotNull(installment1.getPaymentDate());
+
+        Mockito.verify(loanRepository).save(loan);
+        Mockito.verify(customerRepository).save(customer);
+
+
+        Mockito.verify(loanInstallmentRepository).save(installment1);
+        Mockito.verify(loanInstallmentRepository).save(installment2);
+
+    }
+
+    }
+
+
 

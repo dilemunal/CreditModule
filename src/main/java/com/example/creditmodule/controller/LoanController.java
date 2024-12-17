@@ -2,7 +2,9 @@ package com.example.creditmodule.controller;
 
 import com.example.creditmodule.dto.request.CreateLoanRequestDTO;
 import com.example.creditmodule.dto.request.ListLoansRequestDTO;
+import com.example.creditmodule.dto.request.PayLoanRequest;
 import com.example.creditmodule.dto.response.LoanInstallmentResponseDTO;
+import com.example.creditmodule.dto.response.LoanPaymentResponseDTO;
 import com.example.creditmodule.dto.response.LoanResponseDTO;
 import com.example.creditmodule.entity.Loan;
 import com.example.creditmodule.service.LoanService;
@@ -42,6 +44,15 @@ public class LoanController {
     public ResponseEntity<List<LoanInstallmentResponseDTO>> listInstallments(@RequestParam Long loanId) {
         List<LoanInstallmentResponseDTO> loanInstallments = loanService.listInstallments(loanId);
         return ResponseEntity.ok(loanInstallments);
+    }
+
+    @PostMapping("payLoan")
+    public ResponseEntity<LoanPaymentResponseDTO> payLoan(@Valid @RequestBody PayLoanRequest payLoanRequest) {
+        try {
+            return ResponseEntity.ok(loanService.payLoan(payLoanRequest));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
     }
 
 }

@@ -2,7 +2,9 @@ package com.example.creditmodule.service.impl;
 
 import com.example.creditmodule.dto.request.CreateLoanRequestDTO;
 import com.example.creditmodule.dto.request.ListLoansRequestDTO;
+import com.example.creditmodule.dto.request.PayLoanRequest;
 import com.example.creditmodule.dto.response.LoanInstallmentResponseDTO;
+import com.example.creditmodule.dto.response.LoanPaymentResponseDTO;
 import com.example.creditmodule.dto.response.LoanResponseDTO;
 import com.example.creditmodule.entity.Customer;
 import com.example.creditmodule.entity.Loan;
@@ -148,6 +150,69 @@ public class LoanServiceImpl implements LoanService {
                         loanInstallment.getIsPaid())
         ).collect(Collectors.toList());
     }
+
+    @Override
+    public LoanPaymentResponseDTO payLoan(PayLoanRequest payLoanRequestDTO) {
+        LocalDate today = LocalDate.now();
+        //check if loan exists
+        Loan loan = loanRepository.findById(payLoanRequestDTO.getLoanId()).orElseThrow(
+                () -> new CreditModuleException(ErrorMessage.LOAN_NOT_FOUND));
+
+        //check if payable in terms of month and isPaid
+        List<LoanInstallment> payableInstallments = loanInstallmentRepository.findByLoanId(payLoanRequestDTO.getLoanId())
+                .stream()
+                .filter(installment -> !installment.getIsPaid() && installment.getDueDate().isBefore(today.plusMonths(4)))
+                .toList();
+
+        if (payableInstallments.isEmpty()) {
+            throw new CreditModuleException(ErrorMessage.NO_PAYABLE_INSTALLMENTS);
+        }
+
+
+        double remainingAmount = payLoanRequestDTO.getPaymentAmount();
+        int paidCount = 0;
+        for (LoanInstallment installment : payableInstallments) {
+            if (remainingAmount <= 0) break;
+            Double installmentAmount = installment.getAmount();
+            if (remainingAmount >= installmentAmount) {
+                installment.setPaidAmount(installmentAmount);
+                installment.setIsPaid(true);
+                installment.setPaymentDate(today);
+                //extra money from user
+                remainingAmount -= installmentAmount;
+                loanInstallmentRepository.save(installment);
+                paidCount++;
+            }
+        }
+
+        //if all installments is paid, update
+        boolean allInstallmentsPaid = payableInstallments.stream().allMatch(LoanInstallment::getIsPaid);
+        if (allInstallmentsPaid) {
+            loan.setIsPaid(true);
+            loanRepository.save(loan);
+            loan.getCustomer().setUsedCreditLimit(
+                    loan.getCustomer().getUsedCreditLimit() - loan.getLoanAmount()
+            );
+            customerRepository.save(loan.getCustomer());
+        }
+
+        int totalInstallments = loan.getNumberOfInstallment();
+        Long unpaidInstallmentsCount =  loanInstallmentRepository.findByLoanId(loan.getId())
+                .stream()
+                .filter(installment -> !installment.getIsPaid())
+                .count();
+
+        return new LoanPaymentResponseDTO(
+                loan.getId(),
+                loan.getLoanAmount(),
+                totalInstallments,
+                paidCount,
+                unpaidInstallmentsCount,
+                remainingAmount,
+                today
+        );
+    }
+
 }
 
 
