@@ -1,6 +1,8 @@
 package com.example.creditmodule.service.impl;
 
 import com.example.creditmodule.dto.request.CreateLoanRequestDTO;
+import com.example.creditmodule.dto.request.ListLoansRequestDTO;
+import com.example.creditmodule.dto.response.LoanResponseDTO;
 import com.example.creditmodule.entity.Customer;
 import com.example.creditmodule.entity.Loan;
 import com.example.creditmodule.enums.ErrorMessage;
@@ -16,6 +18,9 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
@@ -124,5 +129,71 @@ class LoanServiceImplTest {
             );
             Assertions.assertEquals(ErrorMessage.INVALID_NUMBER_OF_INSTALLMENTS.getMessage(), exception.getErrorMessage());
         }
+
+    @Test
+    void listLoans_ThrowExceptionIfCustomerNotFound() {
+        Long customerId = 1000L;
+        ListLoansRequestDTO request = new ListLoansRequestDTO();
+        request.setCustomerId(customerId);
+
+        Mockito.when(customerRepository.findById(customerId)).thenReturn(Optional.empty());
+
+        CreditModuleException exception = Assertions.assertThrows(
+                CreditModuleException.class,
+                () -> loanService.listLoans(request)
+        );
+
+        Assertions.assertEquals(ErrorMessage.CUSTOMER_NOT_FOUND.getMessage(), exception.getErrorMessage());
     }
+
+    @Test
+    void listLoans_shouldThrowExceptionIfNoLoansFound() {
+        Long customerId = 100L;
+        ListLoansRequestDTO request = new ListLoansRequestDTO();
+        request.setCustomerId(customerId);
+
+        Customer customer = new Customer();
+        customer.setId(customerId);
+
+        Mockito.when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
+        Mockito.when(loanRepository.findByCustomerId(customerId)).thenReturn(Collections.emptyList());
+
+        CreditModuleException exception = Assertions.assertThrows(
+                CreditModuleException.class,
+                () -> loanService.listLoans(request)
+        );
+
+        Assertions.assertEquals(ErrorMessage.LOAN_NOT_FOUND.getMessage(), exception.getErrorMessage());
+    }
+
+    @Test
+    void listLoans_shouldApplyFiltersCorrectly() {
+        Long customerId = 100L;
+        Integer filterInstallments = 12;
+        Boolean filterIsPaid = false;
+
+        ListLoansRequestDTO request = new ListLoansRequestDTO();
+        request.setCustomerId(customerId);
+        request.setNumberOfInstallment(filterInstallments);
+        request.setIsPaid(filterIsPaid);
+
+        Customer customer = new Customer();
+        customer.setId(customerId);
+
+        List<Loan> loans = List.of(
+                new Loan(1L, 5000.0, 12, LocalDate.now(), false, customer),
+                new Loan(2L, 3000.0, 6, LocalDate.now(), true, customer),
+                new Loan(3L, 7000.0, 12, LocalDate.now(), true, customer)
+        );
+
+        Mockito.when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
+        Mockito.when(loanRepository.findByCustomerId(customerId)).thenReturn(loans);
+
+        List<LoanResponseDTO> response = loanService.listLoans(request);
+
+        Assertions.assertEquals(1, response.size());
+        Assertions.assertEquals(loans.get(0).getId(), response.get(0).getId());
+    }
+
+}
 

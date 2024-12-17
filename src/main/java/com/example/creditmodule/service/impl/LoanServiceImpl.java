@@ -1,6 +1,8 @@
 package com.example.creditmodule.service.impl;
 
 import com.example.creditmodule.dto.request.CreateLoanRequestDTO;
+import com.example.creditmodule.dto.request.ListLoansRequestDTO;
+import com.example.creditmodule.dto.response.LoanResponseDTO;
 import com.example.creditmodule.entity.Customer;
 import com.example.creditmodule.entity.Loan;
 import com.example.creditmodule.entity.LoanInstallment;
@@ -12,10 +14,12 @@ import com.example.creditmodule.repository.LoanRepository;
 import com.example.creditmodule.service.LoanService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class LoanServiceImpl implements LoanService {
@@ -93,8 +97,39 @@ public class LoanServiceImpl implements LoanService {
         return installments;
     }
 
+    @Override
+    public List<LoanResponseDTO> listLoans(ListLoansRequestDTO listLoansRequestDTO) {
+        if(!customerRepository.findById(listLoansRequestDTO.getCustomerId()).isPresent()){
+            throw new CreditModuleException(ErrorMessage.CUSTOMER_NOT_FOUND);
+        }
+        List<Loan> loans = loanRepository.findByCustomerId(listLoansRequestDTO.getCustomerId());
 
+        if(ObjectUtils.isEmpty(loans)) {
+            throw new CreditModuleException(ErrorMessage.LOAN_NOT_FOUND);
+        }
 
+        if (listLoansRequestDTO.getNumberOfInstallment() != null) {
+            loans = loans.stream()
+                    .filter(loan -> loan.getNumberOfInstallment().equals(listLoansRequestDTO.getNumberOfInstallment()))
+                    .collect(Collectors.toList());
+        }
+
+        if (listLoansRequestDTO.getIsPaid() != null) {
+            loans = loans.stream()
+                    .filter(loan -> loan.getIsPaid().equals(listLoansRequestDTO.getIsPaid()))
+                    .collect(Collectors.toList());
+        }
+
+        return loans.stream()
+                .map(loan -> new LoanResponseDTO(
+                        loan.getId(),
+                        loan.getLoanAmount(),
+                        loan.getNumberOfInstallment(),
+                        loan.getCreateDate(),
+                        loan.getIsPaid()
+                ))
+                .collect(Collectors.toList());
+    }
 }
 
 

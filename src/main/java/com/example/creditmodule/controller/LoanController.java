@@ -1,6 +1,8 @@
 package com.example.creditmodule.controller;
 
 import com.example.creditmodule.dto.request.CreateLoanRequestDTO;
+import com.example.creditmodule.dto.request.ListLoansRequestDTO;
+import com.example.creditmodule.dto.response.LoanResponseDTO;
 import com.example.creditmodule.entity.Loan;
 import com.example.creditmodule.service.LoanService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +12,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.List;
 
 @Controller
 @RequestMapping("api/loan/")
@@ -27,5 +30,12 @@ public class LoanController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
     }
+
+    @PostMapping("listLoans")
+    public ResponseEntity<List<LoanResponseDTO>> listLoans(@Valid @RequestBody ListLoansRequestDTO listLoansRequestDTO) {
+        List<LoanResponseDTO> loans = loanService.listLoans(listLoansRequestDTO);
+        return ResponseEntity.ok(loans);
+    }
+
 
 }
