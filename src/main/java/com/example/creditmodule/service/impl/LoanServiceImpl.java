@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static java.time.temporal.ChronoUnit.DAYS;
+
 @Service
 public class LoanServiceImpl implements LoanService {
 
@@ -161,25 +163,33 @@ public class LoanServiceImpl implements LoanService {
         //check if payable in terms of month and isPaid
         List<LoanInstallment> payableInstallments = loanInstallmentRepository.findByLoanId(payLoanRequestDTO.getLoanId())
                 .stream()
-                .filter(installment -> !installment.getIsPaid() && installment.getDueDate().isBefore(today.plusMonths(4)))
+                .filter(installment -> !installment.getIsPaid() && installment.getDueDate().isBefore(today.plusMonths(3)))
                 .toList();
 
         if (payableInstallments.isEmpty()) {
             throw new CreditModuleException(ErrorMessage.NO_PAYABLE_INSTALLMENTS);
         }
 
-
         double remainingAmount = payLoanRequestDTO.getPaymentAmount();
         int paidCount = 0;
         for (LoanInstallment installment : payableInstallments) {
-            if (remainingAmount <= 0) break;
-            Double installmentAmount = installment.getAmount();
-            if (remainingAmount >= installmentAmount) {
-                installment.setPaidAmount(installmentAmount);
+            Double extra = 0.0;  //discount - penalty amount
+            long daysDifference = DAYS.between(payLoanRequestDTO.getPaymentDate(), installment.getDueDate());
+
+            if (payLoanRequestDTO.getPaymentDate().isBefore(installment.getDueDate())) {
+                extra = - (installment.getAmount() * 0.001 * daysDifference);
+            }
+            else if (payLoanRequestDTO.getPaymentDate().isAfter(installment.getDueDate())) {
+                extra = installment.getAmount() * 0.001 * daysDifference;  // Penalty
+            }
+            Double finalInstallmentAmount = installment.getAmount() + extra;
+
+            if (remainingAmount >= finalInstallmentAmount) {
+                installment.setPaidAmount(finalInstallmentAmount);
                 installment.setIsPaid(true);
                 installment.setPaymentDate(today);
                 //extra money from user
-                remainingAmount -= installmentAmount;
+                remainingAmount -= finalInstallmentAmount;
                 loanInstallmentRepository.save(installment);
                 paidCount++;
             }
