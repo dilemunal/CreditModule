@@ -52,7 +52,7 @@ public class LoanServiceImpl implements LoanService {
             throw new CreditModuleException(ErrorMessage.INVALID_NUMBER_OF_INSTALLMENTS);
         }
 
-        double totalAmount = loanRequestDTO.getLoanAmount() * (1 + loanRequestDTO.getInterestRate());
+        double totalAmount = loanRequestDTO.getLoanAmount() * (loanRequestDTO.getInterestRate());
 
         //All installments should have same amount
         double installmentAmount = totalAmount / loanRequestDTO.getNumberOfInstallment();
@@ -172,18 +172,16 @@ public class LoanServiceImpl implements LoanService {
 
         double remainingAmount = payLoanRequestDTO.getPaymentAmount();
         int paidCount = 0;
-        for (LoanInstallment installment : payableInstallments) {
-            Double extra = 0.0;  //discount - penalty amount
-            long daysDifference = DAYS.between(payLoanRequestDTO.getPaymentDate(), installment.getDueDate());
-
-            if (payLoanRequestDTO.getPaymentDate().isBefore(installment.getDueDate())) {
+        for (LoanInstallment installment : payableInstallments) {Double extra = 0.0;  //discount - penalty amount
+            long daysDifference = DAYS.between(today, installment.getDueDate());
+            if (today.isBefore(installment.getDueDate())) {
                 extra = - (installment.getAmount() * 0.001 * daysDifference);
             }
-            else if (payLoanRequestDTO.getPaymentDate().isAfter(installment.getDueDate())) {
+            else if (today.isAfter(installment.getDueDate())) {
                 extra = installment.getAmount() * 0.001 * daysDifference;  // Penalty
             }
-            Double finalInstallmentAmount = installment.getAmount() + extra;
 
+            Double finalInstallmentAmount = installment.getAmount() + extra;
             if (remainingAmount >= finalInstallmentAmount) {
                 installment.setPaidAmount(finalInstallmentAmount);
                 installment.setIsPaid(true);

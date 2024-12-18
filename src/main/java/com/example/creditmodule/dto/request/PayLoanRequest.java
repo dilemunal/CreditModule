@@ -17,7 +17,4 @@ public class PayLoanRequest {
     @Positive(message = "Payment amount must be greater than 0.")
     private Double paymentAmount;
 
-    @NotNull(message = "Payment date cannot be null.")
-    private LocalDate paymentDate;
-
 }
