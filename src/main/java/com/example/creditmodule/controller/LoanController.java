@@ -8,13 +8,14 @@ import com.example.creditmodule.dto.response.LoanPaymentResponseDTO;
 import com.example.creditmodule.dto.response.LoanResponseDTO;
 import com.example.creditmodule.entity.Loan;
 import com.example.creditmodule.service.LoanService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
 import java.util.List;
 
 @Controller
@@ -25,12 +26,15 @@ public class LoanController {
     LoanService loanService;
 
     @PostMapping("createLoan")
-    public ResponseEntity<Loan> createLoan(@Valid @RequestBody CreateLoanRequestDTO loanRequestDTO) {
+    public ResponseEntity<?> createLoan(@Valid @RequestBody CreateLoanRequestDTO loanRequestDTO, BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(bindingResult.getAllErrors());
+        }
         try {
             Loan loan = loanService.createLoan(loanRequestDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(loan);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid request: " + e.getMessage());
         }
     }
 
