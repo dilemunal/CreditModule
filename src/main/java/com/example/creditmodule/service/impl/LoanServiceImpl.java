@@ -52,7 +52,7 @@ public class LoanServiceImpl implements LoanService {
             throw new CreditModuleException(ErrorMessage.INVALID_NUMBER_OF_INSTALLMENTS);
         }
 
-        double totalAmount = loanRequestDTO.getLoanAmount() * (loanRequestDTO.getInterestRate());
+        double totalAmount = loanRequestDTO.getLoanAmount() * (1  + loanRequestDTO.getInterestRate());
 
         //All installments should have same amount
         double installmentAmount = totalAmount / loanRequestDTO.getNumberOfInstallment();
