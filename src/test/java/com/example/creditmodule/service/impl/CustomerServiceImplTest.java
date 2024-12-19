@@ -1,6 +1,6 @@
 package com.example.creditmodule.service.impl;
 
-import com.example.creditmodule.dto.request.CreateCustomerRequestdDto;
+import com.example.creditmodule.dto.request.CreateCustomerRequestDto;
 import com.example.creditmodule.entity.Customer;
 import com.example.creditmodule.repository.CustomerRepository;
 import org.junit.jupiter.api.Assertions;
@@ -25,7 +25,7 @@ class CustomerServiceImplTest {
 
     @Test
     public void testCreateCustomer_withValidInput() {
-        CreateCustomerRequestdDto request = new CreateCustomerRequestdDto();
+        CreateCustomerRequestDto request = new CreateCustomerRequestDto();
         request.setName("TEST");
         request.setSurname("test");
         request.setUsedCreditLimit(500.0);
@@ -48,7 +48,7 @@ class CustomerServiceImplTest {
 
     @Test
     public void testCreateCustomer_withNullCreditLimits() {
-        CreateCustomerRequestdDto request = new CreateCustomerRequestdDto();
+        CreateCustomerRequestDto request = new CreateCustomerRequestDto();
         request.setName("test");
         request.setSurname("test");
         request.setUsedCreditLimit(null);

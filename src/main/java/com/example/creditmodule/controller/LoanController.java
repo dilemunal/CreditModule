@@ -4,11 +4,11 @@ import com.example.creditmodule.dto.request.CreateLoanRequestDTO;
 import com.example.creditmodule.dto.request.ListLoansRequestDTO;
 import com.example.creditmodule.dto.request.PayLoanRequest;
 import com.example.creditmodule.dto.response.LoanInstallmentResponseDTO;
-import com.example.creditmodule.dto.response.LoanPaymentResponseDTO;
 import com.example.creditmodule.dto.response.LoanResponseDTO;
 import com.example.creditmodule.entity.Loan;
 import com.example.creditmodule.service.LoanService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +28,7 @@ public class LoanController {
     @PostMapping("createLoan")
     public ResponseEntity<?> createLoan(@Valid @RequestBody CreateLoanRequestDTO loanRequestDTO, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(bindingResult.getAllErrors());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(bindingResult.getFieldError().getDefaultMessage());
         }
         try {
             Loan loan = loanService.createLoan(loanRequestDTO);
@@ -39,19 +39,25 @@ public class LoanController {
     }
 
     @PostMapping("listLoans")
-    public ResponseEntity<List<LoanResponseDTO>> listLoans(@Valid @RequestBody ListLoansRequestDTO listLoansRequestDTO) {
+    public ResponseEntity<?> listLoans(@Valid @RequestBody ListLoansRequestDTO listLoansRequestDTO,BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(bindingResult.getFieldError().getDefaultMessage());
+        }
         List<LoanResponseDTO> loans = loanService.listLoans(listLoansRequestDTO);
         return ResponseEntity.ok(loans);
     }
 
     @GetMapping("listInstallments")
-    public ResponseEntity<List<LoanInstallmentResponseDTO>> listInstallments(@RequestParam Long loanId) {
+    public ResponseEntity<List<LoanInstallmentResponseDTO>> listInstallments(@NotNull @RequestParam("loanId") Long loanId) {
         List<LoanInstallmentResponseDTO> loanInstallments = loanService.listInstallments(loanId);
         return ResponseEntity.ok(loanInstallments);
     }
 
     @PostMapping("payLoan")
-    public ResponseEntity<LoanPaymentResponseDTO> payLoan(@Valid @RequestBody PayLoanRequest payLoanRequest) {
+    public ResponseEntity<?> payLoan(@Valid @RequestBody PayLoanRequest payLoanRequest,BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(bindingResult.getFieldError().getDefaultMessage());
+        }
         try {
             return ResponseEntity.ok(loanService.payLoan(payLoanRequest));
         } catch (IllegalArgumentException e) {

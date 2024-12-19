@@ -24,7 +24,6 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.24'
     annotationProcessor 'org.projectlombok:lombok:1.18.24'
     implementation "org.springframework.boot:spring-boot-starter-security"
-    implementation 'org.hibernate.validator:hibernate-validator:6.2.0.Final'
     runtimeOnly 'com.h2database:h2'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
